@@ -1,0 +1,56 @@
+name: Deploy qa2 execute V2
+on:
+  push:
+    branches:
+      - qa2
+  workflow_dispatch:
+
+# Jobs to be executed when the above conditions are met
+jobs:
+
+# This is the name of the job. You can give it whatever name you want
+ deployment-to-org:
+
+ # This job runs inside a VM. Here we can specify which OS this VM should run on.
+ # In this case, we are going to run our commands on the latest version of ubuntu
+  runs-on: SF-Titan_Ubuntu
+  environment: devops-sample-project-qa2
+  steps:
+
+   # The first step is to checkout the code from the develop branch.
+   - name: Checkout code
+     uses: actions/checkout@v3
+     with:
+      fetch-depth: 0
+
+   # Now we install nodejs in the VM and specify latest version.
+   - name: Setup Node.js
+     uses: actions/setup-node@v4
+     with:
+      node-version: 19
+
+   # Install  dependencies
+   - name: Install dependencies
+     run: npm install
+
+   # Install CLI
+   - name: Install Salesforce CLI
+     run: npm install sfdx-cli --global
+
+   - name: 'Test Salesforce CLI Intsalltion'
+     run: |
+      echo "testing Salesforce CLI installation..."
+      sfdx --version
+
+   # Authenticate to org using the org specifc secret keys
+   - name: Authenticate to salesforce org
+     env:
+      SFDX_USERNAME: ${{ secrets.SFDX_USERNAME }}
+      SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+      SFDX_JWT_KEY_PATH: ${{ secrets.SFDX_JWT_KEY_PATH }}
+     run: |
+      echo "${SFDX_USERNAME}"
+      echo "${SFDX_CLIENT_ID}"
+      echo "${SFDX_JWT_KEY_PATH}"
+      sfdx force:auth:jwt:grant --client-id "${SFDX_CLIENT_ID}" --jwt-key-file $SFDX_JWT_KEY_PATH --username $SFDX_USERNAME --set-default-dev-hub --alias MyOrgAlias
+      sfdx force:source:deploy -p force-app/main/default -u MyOrgAlias

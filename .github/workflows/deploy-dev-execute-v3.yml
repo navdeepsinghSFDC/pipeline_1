@@ -1,0 +1,87 @@
+name: Deploy dev1 execute V3
+on:
+  push:
+    branches:
+      - dev1
+  workflow_dispatch:
+
+# Jobs to be executed when the above conditions are met
+jobs:
+
+# This is the name of the job. You can give it whatever name you want
+ deployment-to-org:
+
+ # This job runs inside a VM. Here we can specify which OS this VM should run on.
+ # In this case, we are going to run our commands on the latest version of ubuntu
+  runs-on: SF-Titan_Ubuntu
+  environment: devops-sample-project-dev-v3
+  steps:
+
+   # The first step is to checkout the code from the develop branch.
+   - name: Checkout code
+     uses: actions/checkout@v3
+     with:
+      fetch-depth: 0
+
+   # Now we install nodejs in the VM and specify latest version.
+   - name: Setup Node.js
+     uses: actions/setup-node@v4
+     with:
+      node-version: 19
+
+   # Install  dependencies
+   - name: Install dependencies
+     run: npm install
+
+   # Install CLI
+   - name: Install Salesforce CLI
+     run: npm install sfdx-cli --global
+
+   - name: 'Test Salesforce CLI Intsalltion'
+     run: |
+      echo "testing Salesforce CLI installation..."
+      sfdx --version
+
+   # Authenticate to org using the org specifc secret keys
+   - name: Authenticate to salesforce org
+     env:
+      SFDX_USERNAME: ${{ vars.SFDX_USERNAME }}
+      SFDX_CLIENT_ID: ${{ vars.SFDX_CLIENT_ID }}
+      SFDX_JWT_KEY_PATH: ${{ vars.SFDX_JWT_KEY_PATH }}
+     run: |
+      sfdx force:auth:jwt:grant --client-id "${SFDX_CLIENT_ID}" --jwt-key-file $SFDX_JWT_KEY_PATH --username $SFDX_USERNAME --set-default-dev-hub --alias MyOrgAlias
+      sfdx force:source:deploy -p force-app/main/default -u MyOrgAlias
+
+   # load test data into the org
+   - name: load test data into the salesforce org
+     env:
+      GRANT_SERVICE: ${{ vars.GRANT_SERVICE }}
+      REST_ENDPOINT: ${{ vars.REST_ENDPOINT }}
+      API_VERSION: ${{ vars.API_VERSION }}
+      DATA_SETUP_SF_ORG_USERNAME: ${{ secrets.DATA_SETUP_SF_ORG_USERNAME }}
+      DATA_SETUP_SF_ORG_PASSWORD: ${{ secrets.DATA_SETUP_SF_ORG_PASSWORD }}
+      DATA_SETUP_SF_ORG_LOGIN_URL: ${{ vars.DATA_SETUP_SF_ORG_LOGIN_URL }}
+      DATA_SETUP_SF_ORG_CLIENT_ID: ${{ vars.DATA_SETUP_SF_ORG_CLIENT_ID }}
+      DATA_SETUP_SF_ORG_CLIENT_SECRET: ${{ vars.DATA_SETUP_SF_ORG_CLIENT_SECRET }}
+
+     run: |
+      cd ops
+      npm install
+      node ./dataSetup.js
+
+   # Execute test or test suite on V3
+   - name: Execute test or test suite on V3
+     env:
+      V3_SERVICE_USERNAME: ${{ secrets.V3_SERVICE_USERNAME }}
+      V3_SERVICE_PASSWORD: ${{ secrets.V3_SERVICE_PASSWORD }}
+      V3_SERVICE_URL: ${{ vars.V3_SERVICE_URL }}
+      V3_CLIENT_ID: ${{ vars.V3_CLIENT_ID }}
+      V3_TEST_OR_TESTSUITE_ID: ${{ vars.V3_TEST_OR_TESTSUITE_ID }}
+      V3_ENVIRONMENT_ID: ${{ vars.V3_ENVIRONMENT_ID }}
+      V3_BROWSER: ${{ vars.V3_BROWSER }}
+      V3_LOGIN_URL: ${{ vars.V3_LOGIN_URL }}
+
+     run: |
+      cd ops
+      npm install
+      node ./sta_v3_executeTest.js

@@ -1,0 +1,13 @@
+{
+    "name": "ops",
+    "version": "3.0.0",
+    "description": "",
+    "author": "",
+    "scripts": {},
+    "license": "ISC",
+    "dependencies": {
+        "axios": "0.24.0",
+        "dotenv": "16.0.3",
+        "https": "1.0.0"
+    }
+}

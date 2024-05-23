@@ -1,0 +1,91 @@
+JWT Key and Certificate Generation :
+
+JWT Authorization requires us to run a set of commands towards the end of which we will have a server certificate and server key. Using both Certificate and key we can authorize a salesforce org from command line.
+
+we are using Salesforce dx and Salesforce CLI to Authorize and deploy the LWC code base to Org.
+
+   The commands to generate Server key and Server Certificate.
+
+To execute this commands, you need to have OpenSSL installed on you machine. To check if you have OpenSSL already installed on your machine just type
+
+                               openssl version
+
+on your command prompt.
+
+
+1. Open command prompt
+2. Navigate to folder ‘JWT’. Create a folder if you don’t have one.
+
+Execute the following commands.
+
+1st Command :
+
+        openSSL genrsa -des3 -passout pass:somepassword -out server.pass.key 2048
+
+
+Execute the above command by providing a password of your choice in the portion highlighted in brown.
+
+You should see something similar to the below screenshot.
+
+
+2nd Command :
+
+
+ openssl rsa -passin pass:somepassword -in server.pass.key -out server.key
+
+.
+Execute the above command by providing a password you provided in the first command in the portion highlighted in brown.
+
+You should see something similar to the below screenshot.
+
+3rd Command :
+
+
+ openssl req -new -key server.key -out server.csr
+
+
+Execute the above command.
+Your will be asked to Provide some details like Country name, province , email , and challenge password etc.
+These details are self explanatory and the challenge password need not be your email password.
+
+Once you fill in the details, you should see something similar to the below screenshot.
+
+4th Command :
+
+openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out server.crt
+
+
+Execute the above command.
+You should see something similar to the below screenshot.
+
+Once you execute all the above commands successfully, you should see the following 4 files generated in the JWT folder.
+
+
+
+
+Now we can use the server.crt and server.key files to authorize an org and deploy the lwc code base to the org. This Key and certificate can used to authorize multiple orgs. Meaning these files are not specific to any org.
+Before that there are some settings needs to be done to the connected app in the target org.
+
+Settings to the connected app on the org.
+
+Once you navigate to the connected app on the org that is to be deployed with the lwc code,
+
+
+1. Click on Edit
+2. Under the API(Enable OAuth Settings), Enable Digital signature and upload the server.crt you just generated in JWT folder.
+3. Under the API(Enable OAuth Settings), for the Select OAuth Scopes , the following scopes should be enabled.
+
+Access the identity URL service (id, profile, email, address, phone)
+Manager user data via APIs (api)
+Manage user data via Web browsers (web)
+Full access (full)
+Perform requests at any time (refresh_tokes, offline_access)
+
+1. Click on save and copy your Consumer Key somewhere on your machine. We will use this key sometime later.
+
+Your connected app should look something like this
+
+1. Click on Manage
+2. Click on Edit Policies on resulting page.
+3. For Permitted users picklist, select Admin approved users are pre-authorized.
+4. Go down to the profiles section of the app configuration and Make sure System Administrator is listed or add the profile if it is missing.
